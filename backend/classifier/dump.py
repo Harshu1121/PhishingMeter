@@ -1,29 +1,36 @@
+
+
 from sklearn.tree import _tree
 
 def tree_to_json(tree):
     tree_ = tree.tree_
-    feature_name = [i if i != _tree.TREE_UNDEFINED else "undefined!" for i in tree_.feature]
-    
+    feature_names = range(30)
+    feature_name = [
+        feature_names[i] if i != _tree.TREE_UNDEFINED else "undefined!"
+        for i in tree_.feature
+    ]
     def recurse(node):
+        tree_json = dict()
         if tree_.feature[node] != _tree.TREE_UNDEFINED:
-            return {
-                'type': 'split',
-                'threshold': f"{feature_name[node]} <= {tree_.threshold[node]}",
-                'left': recurse(tree_.children_left[node]),
-                'right': recurse(tree_.children_right[node])
-            }
+            tree_json['type'] = 'split'
+            threshold = tree_.threshold[node]
+            tree_json['threshold'] = "{} <= {}".format(feature_name[node], threshold)
+            tree_json['left'] = recurse(tree_.children_left[node])
+            tree_json['right'] = recurse(tree_.children_right[node])
         else:
-            return {'type': 'leaf', 'value': tree_.value[node].tolist()}
+            tree_json['type'] = 'leaf'
+            tree_json['value'] = tree_.value[node].tolist()
+        return tree_json
 
     return recurse(0)
 
 def forest_to_json(forest):
-    return {
-        'n_features': forest.n_features_in_,  # ✅ changed from n_features_ to n_features_in_
-        'n_classes': forest.n_classes_,
-        'classes': forest.classes_.tolist(),
-        'n_outputs': forest.n_outputs_,
-        'n_estimators': forest.n_estimators,
-        'estimators': [tree_to_json(est) for est in forest.estimators_]
-    }
+    forest_json = dict()
+    forest_json['n_features'] = forest.n_features_
+    forest_json['n_classes'] = forest.n_classes_
+    forest_json['classes'] = forest.classes_.tolist()
+    forest_json['n_outputs'] = forest.n_outputs_
+    forest_json['n_estimators'] = forest.n_estimators
+    forest_json['estimators'] = [tree_to_json(estimator) for estimator in forest.estimators_]
+    return forest_json
 
